@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Word Pronunciation Platform — Final Reviewed</title>
+    <style>
+        /* Cleaned and compacted styling */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; color:#111; }
+        .container { max-width:900px; margin:24px auto; padding:20px; }
+        .card { background: rgba(255,255,255,0.95); border-radius:16px; padding:20px; box-shadow:0 8px 30px rgba(0,0,0,0.08); }
+        .header { text-align:center; margin-bottom:12px; }
+        h1 { font-size:1.6rem; background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .navigation { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+        .nav-btn { padding:8px 14px; border-radius:14px; border:none; cursor:pointer; background:linear-gradient(135deg,#4299e1,#667eea); color:#fff; }
+        .word-display { font-size:1.8rem; font-weight:700; margin:12px 0; text-align:center; }
+        .controls { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:12px; }
+        .btn { padding:10px 14px; border-radius:12px; border:none; cursor:pointer; }
+        .reference-btn { background:linear-gradient(135deg,#48bb78,#38a169); color:#fff; }
+        .record-btn { background:linear-gradient(135deg,#ed64a6,#d53f8c); color:#fff; }
+        .record-controls { display:none; flex-direction:column; align-items:center; gap:10px; margin-top:10px; }
+        .record-controls.active { display:flex; }
+        .record-circle { width:72px; height:72px; border-radius:50%; border:none; cursor:pointer; font-weight:700; }
+        .recordings { margin-top:14px; }
+        .recording-item { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px; border-radius:10px; background:#f7fafc; }
+        .message { display:none; padding:10px; border-radius:8px; margin-top:10px; }
+        .message.show { display:block; }
+        .error { background:rgba(254,226,226,0.95); color:#991b1b; }
+        .success { background:rgba(220,252,231,0.95); color:#065f46; }
+        @media (max-width:600px) { .navigation { flex-direction:column; gap:8px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Word Pronunciation Platform — Final Reviewed</h1>
+                <div style="font-size:0.95rem;color:#444;">Record, upload and manage pronunciations — each word has its own Cloudinary folder</div>
+            </div>
+
+            <div class="navigation">
+                <button id="prevBtn" class="nav-btn">← Previous</button>
+                <div id="wordCounter">Word 1 of 10</div>
+                <button id="nextBtn" class="nav-btn">Next →</button>
+            </div>
+
+            <div class="word-display" id="wordDisplay">Loading...</div>
+
+            <div class="controls">
+                <button id="referenceBtn" class="btn reference-btn" style="display:none">🔊 Play Reference</button>
+                <button id="uploadRefBtn" class="btn" style="display:none">☁️ Upload Ref</button>
+                <button id="importRefBtn" class="btn" style="display:none">⬇️ Save Ref as Recording</button>
+                <button id="recordRefBtn" class="btn reference-btn">🎙 Record Reference</button>
+                <button id="recordToggleBtn" class="btn record-btn">🎤 Record</button>
+            </div>
+
+            <div id="errorMessage" class="message error"></div>
+            <div id="successMessage" class="message success"></div>
+
+            <div id="recordingControls" class="record-controls">
+                <button id="startRecordBtn" class="record-circle">● REC</button>
+                <div id="recordingStatus" style="display:none"> <span id="timer">0:00</span> </div>
+                <button id="cancelRecordBtn" class="nav-btn">Cancel</button>
+            </div>
+
+            <div id="recordingsSection" class="recordings" style="display:none">
+                <h3>Your Recordings (<span id="recordingCount">0</span>)</h3>
+                <div id="recordingsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------- CONFIG (move secrets to backend for production) ----------
+        const CLOUDINARY_CONFIG = {
+            cloudName: 'dhnti4zrw',
+            apiKey: '887424459977643',
+            apiSecret: 'zjnbxgoAgXHLNf2HNYUsFADsHfQ', // DO NOT KEEP IN BROWSER FOR REAL DEPLOYMENT
+            uploadPreset: 'word_recordings' // must be an unsigned preset for client uploads
+        };
+
+        // ---------- DATA ----------
+        const words = [
+            { id: 1, text: 'hello', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/hello--_us_1.mp3', cloudinaryRef: null },
+            { id: 2, text: 'world', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/world--_us_1.mp3', cloudinaryRef: null },
+            { id: 3, text: 'water', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/water--_us_1.mp3', cloudinaryRef: null },
+            { id: 4, text: 'house', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/house--_us_1.mp3', cloudinaryRef: null },
+            { id: 5, text: 'family', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/family--_us_1.mp3', cloudinaryRef: null },
+            { id: 6, text: 'friend', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/friend--_us_1.mp3', cloudinaryRef: null },
+            { id: 7, text: 'food', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/food--_us_1.mp3', cloudinaryRef: null },
+            { id: 8, text: 'please', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/please--_us_1.mp3', cloudinaryRef: null },
+            { id: 9, text: 'goodbye', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/goodbye--_us_1.mp3', cloudinaryRef: null },
+            { id: 10, text: 'computer', referenceAudio: 'https://ssl.gstatic.com/dictionary/static/sounds/20220808/computer--_us_1.mp3', cloudinaryRef: null }
+        ];
+
+        // ---------- STATE ----------
+        let currentWordIndex = 0;
+        let mediaRecorder = null;
+        let currentStream = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordingTimer = null;
+        let recordingTime = 0;
+        let recordings = {}; // { [wordId]: [recording, ...] }
+        let selectedMimeType = '';
+        let isRecordingReference = false;
+
+        // ---------- DOM ----------
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const wordDisplay = document.getElementById('wordDisplay');
+        const wordCounter = document.getElementById('wordCounter');
+        const referenceBtn = document.getElementById('referenceBtn');
+        const uploadRefBtn = document.getElementById('uploadRefBtn');
+        const importRefBtn = document.getElementById('importRefBtn');
+        const recordRefBtn = document.getElementById('recordRefBtn');
+        const recordToggleBtn = document.getElementById('recordToggleBtn');
+        const recordingControls = document.getElementById('recordingControls');
+        const startRecordBtn = document.getElementById('startRecordBtn');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const timerEl = document.getElementById('timer');
+        const cancelRecordBtn = document.getElementById('cancelRecordBtn');
+        const recordingsSection = document.getElementById('recordingsSection');
+        const recordingsList = document.getElementById('recordingsList');
+        const recordingCount = document.getElementById('recordingCount');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // ---------- UTIL ----------
+        function showError(msg) { if (!errorMessage) return; errorMessage.textContent = msg; errorMessage.classList.add('show'); setTimeout(()=>errorMessage.classList.remove('show'),7000); }
+        function showSuccess(msg) { if (!successMessage) return; successMessage.textContent = msg; successMessage.classList.add('show'); setTimeout(()=>successMessage.classList.remove('show'),5000); }
+        function hideMessages() { if (errorMessage) errorMessage.classList.remove('show'); if (successMessage) successMessage.classList.remove('show'); }
+        function formatTime(s) { const m = Math.floor(s/60); const sec = s%60; return `${m}:${sec.toString().padStart(2,'0')}`; }
+
+        // ---------- INITIALIZATION ----------
+        function init() {
+            // load persisted data
+            try { const w = JSON.parse(localStorage.getItem('wordsWithCloudinaryRefs')||'null'); if (Array.isArray(w)) { for (const s of w) { const obj = words.find(x=>x.text===s.text||x.id===s.id); if (obj && s.cloudinaryRef) obj.cloudinaryRef = s.cloudinaryRef; } } } catch(e){console.warn('load words',e)}
+            try { const r = JSON.parse(localStorage.getItem('wordRecordings')||'null'); if (r) recordings = r; } catch(e){console.warn('load recs',e)}
+            attachListeners();
+            renderCurrentWord();
+        }
+
+        function attachListeners() {
+            prevBtn?.addEventListener('click', ()=>{ if (currentWordIndex>0) { currentWordIndex--; renderCurrentWord(); } });
+            nextBtn?.addEventListener('click', ()=>{ if (currentWordIndex<words.length-1) { currentWordIndex++; renderCurrentWord(); } });
+            referenceBtn?.addEventListener('click', playReferenceAudio);
+            uploadRefBtn?.addEventListener('click', uploadReferenceAudio);
+            importRefBtn?.addEventListener('click', importReferenceIntoRecordings);
+            recordRefBtn?.addEventListener('click', ()=>{ isRecordingReference = true; if (!recordingControls.classList.contains('active')) toggleRecordingControls(); });
+            recordToggleBtn?.addEventListener('click', ()=>{ isRecordingReference = false; toggleRecordingControls(); });
+            startRecordBtn?.addEventListener('click', handleRecording);
+            cancelRecordBtn?.addEventListener('click', cancelRecording);
+        }
+
+        // ---------- RENDER ----------
+        function renderCurrentWord() {
+            const word = words[currentWordIndex];
+            if (!word) return;
+            wordDisplay.textContent = word.text;
+            wordCounter.textContent = `Word ${currentWordIndex+1} of ${words.length}`;
+            prevBtn.disabled = currentWordIndex===0;
+            nextBtn.disabled = currentWordIndex===words.length-1;
+
+            if (referenceBtn) referenceBtn.style.display = 'inline-block';
+            if (uploadRefBtn) uploadRefBtn.style.display = (word.referenceAudio && !word.cloudinaryRef)?'inline-block':'none';
+            if (importRefBtn) importRefBtn.style.display = (word.referenceAudio)?'inline-block':'none';
+
+            renderRecordingsForWord();
+            resetRecordingUI();
+        }
+
+        function renderRecordingsForWord(){
+            const word = words[currentWordIndex];
+            const list = recordings[word.id] || [];
+            if (!list || list.length===0){ recordingsSection.style.display='none'; return; }
+            recordingsSection.style.display='block'; recordingCount.textContent = list.length; recordingsList.innerHTML='';
+            list.forEach((r,i)=>{
+                const div = document.createElement('div'); div.className='recording-item';
+                div.innerHTML = `<div style="font-size:14px">${r.filename}${r.isReference? ' (reference)':''} • ${r.duration || 0}s<div style="font-size:11px;color:#666">${new Date(r.uploadedAt||Date.now()).toLocaleString()}</div></div>
+                <div style="display:flex;gap:8px">
+                    <button class="play-btn btn" data-audio="${r.audioUrl}">▶ Play</button>
+                    <button class="delete-btn btn" data-wordid="${r.wordId}" data-index="${i}" data-cloudid="${r.cloudinaryId}">🗑 Delete</button>
+                </div>`;
+                recordingsList.appendChild(div);
+            });
+            recordingsList.querySelectorAll('.play-btn').forEach(b=>b.addEventListener('click', e=>playRecording(e.currentTarget.dataset.audio)));
+            recordingsList.querySelectorAll('.delete-btn').forEach(b=>b.addEventListener('click', e=>deleteRecording(Number(e.currentTarget.dataset.wordid), Number(e.currentTarget.dataset.index), e.currentTarget.dataset.cloudid)));
+        }
+
+        // ---------- REFERENCE PLAY / UPLOAD / IMPORT ----------
+        function playReferenceAudio(){
+            const word = words[currentWordIndex];
+            const url = word.cloudinaryRef || word.referenceAudio;
+            if (!url){ showError('No reference audio available'); return; }
+            if (window.currentAudio){ window.currentAudio.pause(); window.currentAudio.currentTime=0; }
+            window.currentAudio = new Audio(url);
+            window.currentAudio.play().catch(e=>{ showError('Could not play reference audio'); console.error(e); });
+        }
+
+        async function uploadReferenceAudio(){
+            // fetch remote audio into blob then upload into pronunciations/<word>/reference
+            const word = words[currentWordIndex]; if (!word || !word.referenceAudio){ showError('No reference to upload'); return; }
+            try{
+                uploadRefBtn.textContent='Uploading...'; uploadRefBtn.disabled=true;
+                const resp = await fetch(word.referenceAudio);
+                if (!resp.ok) throw new Error('Failed to fetch remote audio');
+                const blob = await resp.blob();
+
+                const folder = `word-pronunciations/${word.text}/reference`;
+                const publicId = `${word.text}_reference_${Date.now()}`;
+                const form = new FormData();
+                form.append('file', blob, `${publicId}.mp3`);
+                form.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+                form.append('resource_type', 'auto');
+                form.append('folder', folder);
+                form.append('public_id', publicId);
+
+                const up = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/upload`,{ method:'POST', body: form });
+                if (!up.ok){ const txt = await up.text().catch(()=>'[no body]'); console.error('uploadRef failed', up.status, up.statusText, txt); throw new Error('Upload failed'); }
+                const res = await up.json();
+                word.cloudinaryRef = res.secure_url;
+                localStorage.setItem('wordsWithCloudinaryRefs', JSON.stringify(words));
+                showSuccess('Reference uploaded to Cloudinary');
+                renderCurrentWord();
+            }catch(err){ showError('Failed to upload reference — see console'); console.error('uploadReferenceAudio error',err); }
+            finally{ uploadRefBtn.textContent='☁️ Upload Ref'; uploadRefBtn.disabled=false; }
+        }
+
+        async function importReferenceIntoRecordings(){
+            // Instruct Cloudinary to fetch the remote file directly by sending the remote URL in the 'file' field.
+            const word = words[currentWordIndex]; if (!word || !word.referenceAudio){ showError('No reference to import'); return; }
+            try{
+                importRefBtn.textContent='Saving...'; importRefBtn.disabled=true;
+                const occurrence = (recordings[word.id]||[]).length + 1;
+                const filename = `${word.text}_${occurrence}_${Date.now()}`;
+                const folder = `pronunciations/${word.text}/recordings`;
+                const form = new FormData();
+                form.append('file', word.referenceAudio); // Cloudinary will fetch this URL
+                form.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+                form.append('resource_type', 'auto');
+                form.append('folder', folder);
+                form.append('public_id', filename);
+
+                const up = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/upload`,{ method:'POST', body: form });
+                if (!up.ok){ const txt = await up.text().catch(()=>'[no body]'); console.error('importRef failed', up.status, up.statusText, txt); throw new Error('Import upload failed'); }
+                const res = await up.json();
+
+                const rec = { id: res.public_id, wordId: word.id, wordText: word.text, audioUrl: res.secure_url, duration:0, uploadedAt:new Date().toISOString(), cloudinaryId:res.public_id, occurrenceNumber: occurrence, filename: filename, isReference:true };
+                if (!recordings[word.id]) recordings[word.id]=[];
+                recordings[word.id].push(rec);
+                if (!word.cloudinaryRef) { word.cloudinaryRef=res.secure_url; localStorage.setItem('wordsWithCloudinaryRefs', JSON.stringify(words)); }
+                localStorage.setItem('wordRecordings', JSON.stringify(recordings));
+                showSuccess('Reference saved as recording');
+                renderCurrentWord();
+            }catch(err){ showError('Failed to save reference as recording — check console'); console.error('importReferenceIntoRecordings error',err); }
+            finally{ importRefBtn.textContent='⬇️ Save Ref as Recording'; importRefBtn.disabled=false; }
+        }
+
+        // ---------- RECORDING ----------
+        function toggleRecordingControls(){
+            if (!recordingControls) return;
+            if (recordingControls.classList.contains('active')) { resetRecordingUI(); }
+            else { recordingControls.classList.add('active'); recordToggleBtn.textContent='❌ Cancel'; if (isRecordingReference) recordRefBtn.textContent='Recording Reference (press REC)'; }
+        }
+
+        function resetRecordingUI(){ if (!recordingControls) return; recordingControls.classList.remove('active'); recordToggleBtn.textContent='🎤 Record'; recordRefBtn.textContent='🎙 Record Reference'; if (recordingStatus) recordingStatus.style.display='none'; if (startRecordBtn) { startRecordBtn.textContent='● REC'; startRecordBtn.disabled=false; } recordingTime=0; if (timerEl) timerEl.textContent='0:00'; if (isRecording) stopRecording(); isRecordingReference=false; }
+
+        async function handleRecording(){ if (!isRecording) await startRecording(); else await stopRecording(); }
+
+        async function startRecording(){
+            try{
+                hideMessages();
+                const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+                currentStream = stream;
+                let mime = 'audio/webm'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/webm;codecs=opus'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/mp4'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/wav';
+                selectedMimeType = mime;
+                mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e=>{ if (e.data && e.data.size>0) audioChunks.push(e.data); };
+                mediaRecorder.onstop = onRecordingStop;
+                mediaRecorder.start(1000);
+                isRecording=true; recordingTime=0; if (startRecordBtn) startRecordBtn.textContent='⏹ STOP'; if (recordingStatus) recordingStatus.style.display='block'; recordingTimer = setInterval(()=>{ recordingTime++; if (timerEl) timerEl.textContent=formatTime(recordingTime); }, 1000);
+            }catch(err){ showError('Could not access microphone. Ensure permission and HTTPS.'); console.error('startRecording error',err); }
+        }
+
+        async function stopRecording(){
+            if (mediaRecorder && isRecording){
+                try{ mediaRecorder.stop(); }catch(e){ console.warn('stop error',e); }
+                if (currentStream){ try{ currentStream.getTracks().forEach(t=>t.stop()); }catch(e){} currentStream=null; }
+                clearInterval(recordingTimer); isRecording=false; if (startRecordBtn){ startRecordBtn.textContent='Processing...'; startRecordBtn.disabled=true; }
+            }
+        }
+
+        function cancelRecording(){ if (isRecording) stopRecording(); audioChunks=[]; resetRecordingUI(); }
+
+        async function onRecordingStop(){
+            try{
+                if (!audioChunks || audioChunks.length===0){ showError('No audio captured'); resetRecordingUI(); return; }
+                const blob = new Blob(audioChunks, { type: selectedMimeType||'audio/webm' });
+                await uploadRecording(blob, isRecordingReference);
+            }catch(err){ showError('Processing recorded audio failed'); console.error('onRecordingStop error', err); }
+        }
+
+        // ---------- UPLOAD RECORDING ----------
+        async function uploadRecording(blob, markAsReference=false){
+            try{
+                const word = words[currentWordIndex];
+                const occurrence = (recordings[word.id]||[]).length + 1;
+                const filename = `${word.text}_${occurrence}_${Date.now()}`;
+
+                const folder = `word-pronunciations/${word.text}`;
+                // const folder = `word-pronunciations/${word.text}/recordings`;
+                // public_id without slashes to avoid confusion; folder param controls placement
+                const publicId = filename;
+
+                const form = new FormData();
+                form.append('file', blob, `${filename}.webm`);
+                form.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+                form.append('resource_type', 'auto');
+                form.append('folder', folder);
+                form.append('public_id', publicId);
+
+                const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/upload`,{ method:'POST', body: form });
+                if (!resp.ok){ const txt = await resp.text().catch(()=>'[no body]'); console.error('uploadRecording failed', resp.status, resp.statusText, txt); throw new Error('Upload failed'); }
+                const res = await resp.json();
+
+                const rec = { id:res.public_id, wordId: word.id, wordText: word.text, audioUrl: res.secure_url, duration: recordingTime, uploadedAt:new Date().toISOString(), cloudinaryId:res.public_id, occurrenceNumber: occurrence, filename: filename, isReference: !!markAsReference };
+                if (!recordings[word.id]) recordings[word.id]=[];
+                recordings[word.id].push(rec);
+                if (markAsReference){ word.cloudinaryRef = res.secure_url; localStorage.setItem('wordsWithCloudinaryRefs', JSON.stringify(words)); }
+                localStorage.setItem('wordRecordings', JSON.stringify(recordings));
+                showSuccess('Recording uploaded successfully');
+                renderCurrentWord();
+            }catch(err){ showError('Failed to upload recording — see console'); console.error('uploadRecording error', err); }
+            finally{ resetRecordingUI(); audioChunks=[]; if (startRecordBtn) startRecordBtn.disabled=false; isRecordingReference=false; }
+        }
+
+        // ---------- PLAY / DELETE ----------
+        function playRecording(url){ if (!url){ showError('No audio to play'); return; } if (window.currentAudio){ window.currentAudio.pause(); window.currentAudio.currentTime=0; } window.currentAudio = new Audio(url); window.currentAudio.play().catch(e=>{ showError('Playback error'); console.error(e); }); }
+
+        async function deleteRecording(wordId, idx, cloudinaryId){ if (!confirm('Delete this recording?')) return; try{ if (recordings && recordings[wordId]){ recordings[wordId].splice(idx,1); localStorage.setItem('wordRecordings', JSON.stringify(recordings)); } // attempt cloud delete (best-effort)
+                try{ const ts = Math.round(Date.now()/1000); const signature = await generateDeleteSignature(cloudinaryId, ts); const form = new FormData(); form.append('public_id', cloudinaryId); form.append('signature', signature); form.append('api_key', CLOUDINARY_CONFIG.apiKey); form.append('timestamp', ts); const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/destroy`,{ method:'POST', body: form }); if (!resp.ok){ const txt = await resp.text().catch(()=>'[no body]'); console.warn('cloud delete failed', resp.status, resp.statusText, txt); } else { try{ const j = await resp.json(); console.log('cloud delete response', j); } catch(e){} } }catch(e){ console.warn('cloud delete client-side failed', e); }
+                await renumberRecordings(wordId); showSuccess('Recording deleted (local).'); renderCurrentWord(); }catch(err){ showError('Failed to delete recording'); console.error('deleteRecording error', err); } }
+
+        async function generateDeleteSignature(publicId, timestamp){ // insecure client-side signature for demo only
+            const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${CLOUDINARY_CONFIG.apiSecret}`;
+            const encoder = new TextEncoder(); const data = encoder.encode(stringToSign); const hashBuffer = await crypto.subtle.digest('SHA-1', data); const hashArray = Array.from(new Uint8Array(hashBuffer)); return hashArray.map(b=>b.toString(16).padStart(2,'0')).join(''); }
+
+        async function renumberRecordings(wordId){ const arr = recordings[wordId]; if (!arr) return; const w = words.find(x=>x.id===Number(wordId)); if (!w) return; for (let i=0;i<arr.length;i++){ arr[i].occurrenceNumber = i+1; arr[i].filename = `${w.text}_${i+1}`; } localStorage.setItem('wordRecordings', JSON.stringify(recordings)); }
+
+        // ---------- START ----------
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
