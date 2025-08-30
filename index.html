@@ -8,7 +8,7 @@
         /* Cleaned and compacted styling */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; color:#111; }
-        .container { max-width:900px; margin:24px auto; padding:20px; }
+        .container { position:absolute; top:40%; left:50%; transform:translate(-50%,-50%); max-width:900px; margin:24px auto; padding:20px; }
         .card { background: rgba(255,255,255,0.95); border-radius:16px; padding:20px; box-shadow:0 8px 30px rgba(0,0,0,0.08); }
         .header { text-align:center; margin-bottom:12px; }
         h1 { font-size:1.6rem; background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
@@ -49,7 +49,7 @@
 
             <div class="controls">
                 <button id="referenceBtn" class="btn reference-btn" style="display:none">🔊 Play Reference</button>
-                <button id="uploadRefBtn" class="btn" style="display:none">☁️ Upload Ref</button>
+                <!-- <button id="uploadRefBtn" class="btn" style="display:none">☁️ Upload Ref</button> -->
                 <button id="importRefBtn" class="btn" style="display:none">⬇️ Save Ref as Recording</button>
                 <button id="recordRefBtn" class="btn reference-btn">🎙 Record Reference</button>
                 <button id="recordToggleBtn" class="btn record-btn">🎤 Record</button>
