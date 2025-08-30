@@ -274,7 +274,8 @@
                 hideMessages();
                 const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
                 currentStream = stream;
-                let mime = 'audio/webm'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/webm;codecs=opus'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/mp4'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/wav';
+                // let mime = 'audio/webm'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/webm;codecs=opus'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/mp4'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/wav';
+                let mime = 'audio/wav'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/wav;codecs=opus'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/mp4'; if (!MediaRecorder.isTypeSupported(mime)) mime='audio/wav';
                 selectedMimeType = mime;
                 mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
                 audioChunks = [];
@@ -298,7 +299,7 @@
         async function onRecordingStop(){
             try{
                 if (!audioChunks || audioChunks.length===0){ showError('No audio captured'); resetRecordingUI(); return; }
-                const blob = new Blob(audioChunks, { type: selectedMimeType||'audio/webm' });
+                const blob = new Blob(audioChunks, { type: selectedMimeType||'audio/wav' });
                 await uploadRecording(blob, isRecordingReference);
             }catch(err){ showError('Processing recorded audio failed'); console.error('onRecordingStop error', err); }
         }
@@ -317,7 +318,7 @@
                 const publicId = filename;
 
                 const form = new FormData();
-                form.append('file', blob, `${filename}.webm`);
+                form.append('file', blob, `${filename}.wav`);
                 form.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
                 form.append('resource_type', 'auto');
                 form.append('folder', folder);
