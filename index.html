@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Word Pronunciation Platform — WAV Upload to Cloudinary</title>
+    <title>Plateforme de prononciation de mots</title>
     <style>
         /* Cleaned and compacted styling */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,23 +35,23 @@
     <div class="container">
         <div class="card">
             <div class="header">
-                <h1>Word Pronunciation Platform — WAV Upload to Cloudinary</h1>
-                <div style="font-size:0.95rem;color:#444;">Record, upload and manage pronunciations — each word has its own Cloudinary folder</div>
+                <h1>Plateforme de prononciation de mots</h1>
+                <div style="font-size:0.95rem;color:#444;">Aider nous a enrichir notre base de mots</div>
             </div>
 
             <div class="navigation">
-                <button id="prevBtn" class="nav-btn">← Previous</button>
-                <div id="wordCounter">Word 1 of 10</div>
-                <button id="nextBtn" class="nav-btn">Next →</button>
+                <button id="prevBtn" class="nav-btn">← Précédent</button>
+                <div id="wordCounter">Mot 1 sur 10</div>
+                <button id="nextBtn" class="nav-btn">Suivant →</button>
             </div>
 
-            <div class="word-display" id="wordDisplay">Loading...</div>
+            <div class="word-display" id="wordDisplay">Chargement...</div>
 
             <div class="controls">
-                <button id="referenceBtn" class="btn reference-btn" style="display:none">🔊 Play Reference</button>
-                <button id="importRefBtn" class="btn" style="display:none">⬇️ Save Ref as Recording</button>
-                <button id="recordRefBtn" class="btn reference-btn">🎙 Record Reference</button>
-                <button id="recordToggleBtn" class="btn record-btn">🎤 Record</button>
+                <button id="referenceBtn" class="btn reference-btn" style="display:none">🔊 Suivre la reference</button>
+                <!-- <button id="importRefBtn" class="btn" style="display:none">⬇️ Enregistrer la ref&érence</button> -->
+                <button id="recordRefBtn" class="btn reference-btn">🎙 Enregistrer la reférence</button>
+                <button id="recordToggleBtn" class="btn record-btn">🎤 Enregistrer</button>
             </div>
 
             <div id="errorMessage" class="message error"></div>
@@ -60,11 +60,11 @@
             <div id="recordingControls" class="record-controls">
                 <button id="startRecordBtn" class="record-circle">● REC</button>
                 <div id="recordingStatus" style="display:none"> <span id="timer">0:00</span> </div>
-                <button id="cancelRecordBtn" class="nav-btn">Cancel</button>
+                <button id="cancelRecordBtn" class="nav-btn">Arrêter</button>
             </div>
 
             <div id="recordingsSection" class="recordings" style="display:none">
-                <h3>Your Recordings (<span id="recordingCount">0</span>)</h3>
+                <h3>Vos enregistrements (<span id="recordingCount">0</span>)</h3>
                 <div id="recordingsList"></div>
             </div>
         </div>
@@ -184,8 +184,8 @@
                 const div = document.createElement('div'); div.className='recording-item';
                 div.innerHTML = `<div style="font-size:14px">${r.filename}${r.isReference? ' (reference)':''} • ${r.duration || 0}s<div style="font-size:11px;color:#666">${new Date(r.uploadedAt||Date.now()).toLocaleString()}</div></div>
                 <div style="display:flex;gap:8px">
-                    <button class="play-btn btn" data-audio="${r.audioUrl}">▶ Play</button>
-                    <button class="delete-btn btn" data-wordid="${r.wordId}" data-index="${i}">🗑 Delete</button>
+                    <button class="play-btn btn" data-audio="${r.audioUrl}">▶ Jouer</button>
+                    <button class="delete-btn btn" data-wordid="${r.wordId}" data-index="${i}">🗑 Supprimer</button>
                 </div>`;
                 recordingsList.appendChild(div);
             });
@@ -228,10 +228,10 @@
         function toggleRecordingControls(){
             if (!recordingControls) return;
             if (recordingControls.classList.contains('active')) { resetRecordingUI(); }
-            else { recordingControls.classList.add('active'); recordToggleBtn.textContent='❌ Cancel'; if (isRecordingReference) recordRefBtn.textContent='Recording Reference (press REC)'; }
+            else { recordingControls.classList.add('active'); recordToggleBtn.textContent='❌ Arrêter'; if (isRecordingReference) recordRefBtn.textContent='Recording Reference (press REC)'; }
         }
 
-        function resetRecordingUI(){ if (!recordingControls) return; recordingControls.classList.remove('active'); recordToggleBtn.textContent='🎤 Record'; recordRefBtn.textContent='🎙 Record Reference'; if (recordingStatus) recordingStatus.style.display='none'; if (startRecordBtn) { startRecordBtn.textContent='● REC'; startRecordBtn.disabled=false; } recordingTime=0; if (timerEl) timerEl.textContent='0:00'; if (isRecording) stopRecording(); isRecordingReference=false; }
+        function resetRecordingUI(){ if (!recordingControls) return; recordingControls.classList.remove('active'); recordToggleBtn.textContent='🎤 Enregistrer'; recordRefBtn.textContent='🎙 Record Reference'; if (recordingStatus) recordingStatus.style.display='none'; if (startRecordBtn) { startRecordBtn.textContent='● REC'; startRecordBtn.disabled=false; } recordingTime=0; if (timerEl) timerEl.textContent='0:00'; if (isRecording) stopRecording(); isRecordingReference=false; }
 
         async function handleRecording(){ if (!isRecording) await startRecording(); else await stopRecording(); }
 
