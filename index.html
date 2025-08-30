@@ -308,7 +308,8 @@
             try{
                 const word = words[currentWordIndex];
                 const occurrence = (recordings[word.id]||[]).length + 1;
-                const filename = `${word.text}_${occurrence}_${Date.now()}`;
+                const filename = `${word.text}_${occurrence}`;
+                // const filename = `${word.text}_${occurrence}_${Date.now()}`;
 
                 const folder = `word-pronunciations/${word.text}`;
                 // const folder = `word-pronunciations/${word.text}/recordings`;
